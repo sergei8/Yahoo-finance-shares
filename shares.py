@@ -13,11 +13,11 @@ pd.options.mode.chained_assignment = None  # disable `warn`
 # choose execl file from menu
 def choose_file():
     # get excel files from curent direcory
-    list_xls = [f for f in os.listdir('./_input') if f.endswith('.xlsx')]
+    list_xls = [f for f in os.listdir('./_input') if f.endswith('.xls') or f.endswith('.xlsx')]
     # print menu
     print '----------------------------------------------'
     print '--- program gets shares from Yahoo finance ---'
-    print '---       ver. #1.04 ( 01.26.18 )          ---'
+    print '---       ver. #1.06 ( 02.05.18 )          ---'
     print '----------------------------------------------'
     print ('\n\nFiles List:\n')
     for num, file_name in enumerate(list_xls):
