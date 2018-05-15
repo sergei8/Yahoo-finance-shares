@@ -2,20 +2,13 @@
 # main part
 import os
 import pandas as pd
-import datetime
+import pandas_datareader.data as web
 from datetime import date
 from datetime import datetime
+import datetime
 from datetime import timedelta
 
-from pandas_datareader import data as web
-
-import fix_yahoo_finance as yf
-
-yf.pdr_override()  # <== that's all it takes :-)
-
-# disable `warn` in pandas
-pd.options.mode.chained_assignment = None
-
+pd.options.mode.chained_assignment = None  # disable `warn`
 
 # choose execl file from menu
 def choose_file():
@@ -24,7 +17,7 @@ def choose_file():
     # print menu
     print '----------------------------------------------'
     print '--- program gets shares from Yahoo finance ---'
-    print '---       ver. #2.01 ( 15.05.18 )          ---'
+    print '---       ver. #1.06 ( 02.05.18 )          ---'
     print '----------------------------------------------'
     print ('\n\nFiles List:\n')
     for num, file_name in enumerate(list_xls):
@@ -52,31 +45,34 @@ def create_table(file_name):
     table = tables_list[tables_list.keys()[-1]]
     
     # clear nan rows
-    table = table[pd.isnull(table.SYMBOL) == False]
+    table = table[pd.isnull(table.SYMBL) == False]
     
     # extract existing found-codes
-    symbl = table.SYMBOL.dropna().unique()
+    symbl = table.SYMBL.dropna().unique()
     
-    # return table and list of found market symbols
-    return table, symbl
+    return table, symbl  # return table and list of found market symbols
 
 
 # input shares dates
 def get_date():
     date_entry = raw_input('Enter date in YYYY-MM-DD format: ')
-    #    year, month, day = map(int, date_entry.split('-'))
-    
-    # !IMPORTANT! add 1 day to period, because `get` returns previous day
-    return datetime.strptime(date_entry, '%Y-%m-%d') + timedelta(days=1)
+    year, month, day = map(int, date_entry.split('-'))
+    return datetime.date(year, month, day)  # return datetime.datetime.now()
 
 
 # read and preprocess shares from yahoo on current date
 def read_shares(symbl, start, end):
-    # read shares from `yahoo`
-    shares_panel = web.get_data_yahoo(list(symbl), start, end)
+    # start = end = datetime.datetime.now()
+    # start = end = get_date()
+    shares_panel = web.DataReader(symbl, 'yahoo', start, end)
     
     # convert Panel to the Multyindexed frame
     shares = shares_panel.to_frame()
+    
+    # remove yesterday (start_date -1) from multyindex df
+    yesterday = start - timedelta(days=1)
+    shares.drop(yesterday, level=0, axis=0, inplace=True)
+    
     
     # remove index level 0 (data)
     shares.index = shares.index.droplevel(0)
@@ -84,32 +80,48 @@ def read_shares(symbl, start, end):
     # convert index into column
     shares.reset_index(inplace=True)
     
-    # rename `minor` column
-    shares.rename(columns={'minor': 'SYMBOL'}, inplace=True)
+    shares.rename(columns={'minor': 'symbl'}, inplace=True)
+    
+    # insert column
+    shares['Current Date'] = start
+    
+    # remove column
+    shares.drop(['Volume'], axis=1, inplace=True)
     
     return shares
 
 
 # create output xls from table and shares dataframes
 def create_output(table, shares):
-    # remove unnesessary columns from shares
-    columns_to_drop = ['Close', 'High', 'Low', 'Open', 'Volume']
-    shares.drop(columns_to_drop, axis=1, inplace=True)
-    
     # create table
-    table = pd.merge(left=table, right=shares, left_on='SYMBOL', right_on='SYMBOL')
+    table = pd.merge(left=table, right=shares, left_on='SYMBL', right_on='symbl')
+    
+    # delete 2-nd `symbol`
+    table.drop('symbl', axis=1, inplace=True)
+    
+    # reformat date columns to m/d/y
+    # table['Current Date'] = table['Current Date'].map(lambda x: x.strftime(format='%m/%d/%Y'))
+    # table['EXP DATE'] = table['EXP DATE'].strftime('%m/%d/%Y')
+    # table['EXP DATE'] = table['EXP DATE'].dt.strftime('%m/%d/%Y')
     
     # reformat prices to 2 dec.digits
-    table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
+    round_2 = lambda x: round(x, 2)
+    table.Open = table.Open.map(round_2)
+    table.Low = table.Low.map(round_2)
+    table.High = table.High.map(round_2)
+    table.Close = table.Close.map(round_2)
+    table['Adj Close'] = table['Adj Close'].map(round_2)
     
-    # rename some columns
-    new_col_names = {'STOCKS': 'STOCKS-BUY', 'Unnamed: 10': 'STOCKS-SELL',
-                     'CALLS': 'CALLS-BUY', 'Unnamed: 12': 'CALLS-SELL',
-                     'PUTTES': 'PUTTES-BUY', 'Unnamed: 14': 'PUTTES-SELL'}
-    table.rename(columns=new_col_names, inplace=True)
+    # reorder columns
+    order = list(table.columns)[:-6]  # exept new columns
+    new_order = order[:len(order)] + ['Current Date', 'Open', 'High', 'Low', 'Close', 'Adj Close']
+    new_table = table[new_order]
+    
+    # reorder SEQ column through ass
+    new_table.SEQ = range(1, new_table.SEQ.shape[0] + 1)
     
     # write new xls table
-    table.to_excel('./_output/' + file_name, index=False)
+    new_table.to_excel('./_output/' + file_name, index=False)
 
 
 if __name__ == '__main__':
