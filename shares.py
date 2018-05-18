@@ -24,7 +24,7 @@ def choose_file():
     # print menu
     print '----------------------------------------------'
     print '--- program gets shares from Yahoo finance ---'
-    print '---       ver. #2.01 ( 15.05.18 )          ---'
+    print '---       ver. #2.03 ( 18.05.18 )          ---'
     print '----------------------------------------------'
     print ('\n\nFiles List:\n')
     for num, file_name in enumerate(list_xls):
