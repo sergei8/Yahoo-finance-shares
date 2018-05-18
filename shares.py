@@ -91,7 +91,7 @@ def read_shares(symbl, start, end):
 
 
 # create output xls from table and shares dataframes
-def create_output(table, shares):
+def create_output(table, shares, real_date):
     # remove unnesessary columns from shares
     columns_to_drop = ['Close', 'High', 'Low', 'Open', 'Volume']
     shares.drop(columns_to_drop, axis=1, inplace=True)
@@ -108,6 +108,9 @@ def create_output(table, shares):
                      'PUTTES': 'PUTTES-BUY', 'Unnamed: 14': 'PUTTES-SELL'}
     table.rename(columns=new_col_names, inplace=True)
     
+    # insert `CURRENT DATE` column before `ADJ price`
+    table.insert(len(table.columns) - 1, 'CURRENT DATE', datetime.strftime(real_date, '%Y-%m-%d'))
+    
     # write new xls table
     table.to_excel('./_output/' + file_name, index=False)
 
@@ -122,6 +125,11 @@ if __name__ == '__main__':
     table, symbl = create_table(file_name)  # create pandas df
     print '\nwork tables created...'
     shares = read_shares(symbl, start_date, end_date)  # deliver shares from yahoo
-    print 'shares delivered...'
-    create_output(table, shares)  # create, reformat and write output xls
-    print 'output file created'
+    if shares.empty:
+        print '***\ncan not grab shares from yahoo-finance\ntry again in few minutes, please\n***'
+        exit
+    else:
+        print ('shares delivered...')
+        real_date = start_date + timedelta(days=-1)
+        create_output(table, shares, real_date)  # create, reformat and write output xls
+        print ('output file created')
