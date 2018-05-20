@@ -17,31 +17,13 @@ yf.pdr_override()  # <== that's all it takes :-)
 pd.options.mode.chained_assignment = None
 
 
-# choose execl file from menu
-def choose_file():
+# choose excel file list
+def get_files_list():
     # get excel files from curent direcory
-    list_xls = [f for f in os.listdir('./_input') if f.endswith('.xls') or f.endswith('.xlsx')]
-    # print menu
-    print '----------------------------------------------'
-    print '--- program gets shares from Yahoo finance ---'
-    print '---       ver. #2.03 ( 18.05.18 )          ---'
-    print '----------------------------------------------'
-    print ('\n\nFiles List:\n')
-    for num, file_name in enumerate(list_xls):
-        print '{} - {}'.format(num + 1, file_name)
-    print('***')
+    files_list = [file_name for file_name in os.listdir('./_input') if file_name.endswith('.xls')
+                  or file_name.endswith('.xlsx')]
     
-    file_number = 999999
-    # choose file
-    while file_number > len(list_xls):
-        try:
-            file_number = input('Enter file number or 0 for exit: ')
-        except:
-            print('\a')  # beep
-        if file_number == 0:
-            exit(1)
-    
-    return list_xls[file_number - 1]
+    return files_list
 
 
 # read xls into pandas table
@@ -58,22 +40,13 @@ def create_table(file_name):
     symbl = table.SYMBOL.dropna().unique()
     
     # return table and list of found market symbols
-    return table, symbl
-
-
-# input shares dates
-def get_date():
-    date_entry = raw_input('Enter date in YYYY-MM-DD format: ')
-    #    year, month, day = map(int, date_entry.split('-'))
-    
-    # !IMPORTANT! add 1 day to period, because `get` returns previous day
-    return datetime.strptime(date_entry, '%Y-%m-%d') + timedelta(days=1)
+    return table, list(symbl)
 
 
 # read and preproces shares from yahoo on current date
-def read_shares(symbl, start, end):
+def read_shares(symbols_list, shares_date):
     # read shares from `yahoo`
-    shares_panel = web.get_data_yahoo(list(symbl), start, end)
+    shares_panel = web.get_data_yahoo(symbols_list, shares_date, shares_date)
     
     # convert Panel to the Multyindexed frame
     shares = shares_panel.to_frame()
@@ -91,13 +64,13 @@ def read_shares(symbl, start, end):
 
 
 # create output xls from table and shares dataframes
-def create_output(table, shares, real_date):
+def create_output(table, file_name, shares, current_date):
     # remove unnesessary columns from shares
     columns_to_drop = ['Close', 'High', 'Low', 'Open', 'Volume']
-    shares.drop(columns_to_drop, axis=1, inplace=True)
+    shares_tmp = shares.drop(columns_to_drop, axis=1)
     
     # create table
-    table = pd.merge(left=table, right=shares, left_on='SYMBOL', right_on='SYMBOL')
+    table = pd.merge(left=table, right=shares_tmp, left_on='SYMBOL', right_on='SYMBOL')
     
     # reformat prices to 2 dec.digits
     table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
@@ -109,10 +82,21 @@ def create_output(table, shares, real_date):
     table.rename(columns=new_col_names, inplace=True)
     
     # insert `CURRENT DATE` column before `ADJ price`
-    table.insert(len(table.columns) - 1, 'CURRENT DATE', datetime.strftime(real_date, '%Y-%m-%d'))
+    table.insert(len(table.columns) - 1, 'CURRENT DATE', current_date.strftime('%m-%d-%Y'))
     
     # write new xls table
     table.to_excel('./_output/' + file_name, index=False)
+
+
+# create symbols_list from all symbols in files_list
+def get_symbols_list(files_list):
+    symbols_list = []
+    for file_name in files_list:
+        __, symbols = create_table(file_name)
+        for symbol in symbols:
+            if symbol not in symbols_list:
+                symbols_list.append(symbol)
+    return symbols_list
 
 
 if __name__ == '__main__':
@@ -120,16 +104,24 @@ if __name__ == '__main__':
     Use pandas module `datareader'. Original file is in _input directory,
     output excel file is in _output directory with the same name'''
     
-    file_name = choose_file()
-    start_date = end_date = get_date()
-    table, symbl = create_table(file_name)  # create pandas df
-    print '\nwork tables created...'
-    shares = read_shares(symbl, start_date, end_date)  # deliver shares from yahoo
-    if shares.empty:
-        print '***\ncan not grab shares from yahoo-finance\ntry again in few minutes, please\n***'
-        exit
+    # get xls-files from `_input` folder
+    files_list = get_files_list()
+    
+    # set date for get shares as for previous day
+    shares_date = datetime.now() + timedelta(-10)
+    
+    # get list of `symbol`
+    symbols_list = get_symbols_list(files_list)
+    print(symbols_list)
+    
+    # deliver shares of `symbols_list` from `yahoo finance`
+    # return dataframe `shares`
+    shares = read_shares(symbols_list, shares_date)
+    
+    # if shares have grabbed then continue
+    if not shares.empty:
+        for file_xls in files_list:
+            create_output(create_table(file_xls)[0], file_xls, shares, shares_date)
+        print ('output files created')
     else:
-        print ('shares delivered...')
-        real_date = start_date + timedelta(days=-1)
-        create_output(table, shares, real_date)  # create, reformat and write output xls
-        print ('output file created')
+        print '***\ncan not grab shares from yahoo-finance\ntry again in few minutes, please\n***'
