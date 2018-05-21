@@ -22,7 +22,7 @@ def get_files_list():
     # get excel files from curent direcory
     files_list = [file_name for file_name in os.listdir('./_input') if file_name.endswith('.xls')
                   or file_name.endswith('.xlsx')]
-    
+    print(files_list)
     return files_list
 
 
@@ -84,6 +84,16 @@ def create_output(table, file_name, shares, current_date):
     # insert `CURRENT DATE` column before `ADJ price`
     table.insert(len(table.columns) - 1, 'CURRENT DATE', current_date.strftime('%m-%d-%Y'))
     
+    # add  and format calculated columns at the end of the table
+    table['STRIKE UPSIDE'] = table['Strike  Price'] * table['Adj Close']
+    table['STRIKE UPSIDE'] = table['STRIKE UPSIDE'].map(lambda x: round(x, 2))
+    table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price'] / 100
+    table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE %'].map(lambda x: round(x, 2))
+    
+    # format some `date` columns
+    table['TRX Date '] = table['TRX Date '] \
+    .map(lambda x: x.strftime('%m-%d-%Y') if type(x) == pd._libs.tslib.Timestamp else x)
+    
     # write new xls table
     table.to_excel('./_output/' + file_name, index=False)
 
@@ -108,7 +118,8 @@ if __name__ == '__main__':
     files_list = get_files_list()
     
     # set date for get shares as for previous day
-    shares_date = datetime.now() + timedelta(-10)
+    shares_date = datetime.now() + timedelta(-4)
+    # print shares_date
     
     # get list of `symbol`
     symbols_list = get_symbols_list(files_list)
