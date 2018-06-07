@@ -22,7 +22,7 @@ def get_files_list():
     # get excel files from curent direcory
     files_list = [file_name for file_name in os.listdir('./_input') if file_name.endswith('.xls')
                   or file_name.endswith('.xlsx')]
-    print(files_list)
+    # print(files_list)
     return files_list
 
 
@@ -85,14 +85,17 @@ def create_output(table, file_name, shares, current_date):
     table.insert(len(table.columns) - 1, 'CURRENT DATE', current_date.strftime('%m-%d-%Y'))
     
     # add  and format calculated columns at the end of the table
-    table['STRIKE UPSIDE'] = table['Strike  Price'] * table['Adj Close']
-    table['STRIKE UPSIDE'] = table['STRIKE UPSIDE'].map(lambda x: round(x, 2))
-    table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price'] / 100
-    table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE %'].map(lambda x: round(x, 2))
+    table['STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price'] 
+    table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price']
+    #table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE %'].map(lambda x: round(x, 2))
+    #table['STRIKE UPSIDE'] = table['STRIKE UPSIDE'].map(lambda x: round(x, 2))
     
     # format some `date` columns
-    table['TRX Date '] = table['TRX Date '] \
-    .map(lambda x: x.strftime('%m-%d-%Y') if type(x) == pd._libs.tslib.Timestamp else x)
+    # table['TRX Date '] = table['TRX Date '] \
+    #     .map(
+    #     lambda x: pd.to_datetime(x, format='%m-%d-%Y').date() if type(x) == pd._libs.tslib.Timestamp else x)
+    # table['TRX Date '] = table['TRX Date '] \
+    #     .map(lambda x: x.strftime('%m/%d/%Y') if type(x) == pd._libs.tslib.Timestamp else x)
     
     # write new xls table
     table.to_excel('./_output/' + file_name, index=False)
@@ -116,23 +119,32 @@ if __name__ == '__main__':
     
     # get xls-files from `_input` folder
     files_list = get_files_list()
+    # print files_list
     
     # set date for get shares as for previous day
-    shares_date = datetime.now() + timedelta(-4)
-    # print shares_date
+    shares_date = datetime.now() + timedelta(-1)
+    print 'shares on: ' + str(shares_date)
     
     # get list of `symbol`
     symbols_list = get_symbols_list(files_list)
-    print(symbols_list)
+    print('symbols: ' + ','.join(symbols_list))
     
     # deliver shares of `symbols_list` from `yahoo finance`
     # return dataframe `shares`
     shares = read_shares(symbols_list, shares_date)
+    # print shares.head(3)
     
     # if shares have grabbed then continue
     if not shares.empty:
         for file_xls in files_list:
-            create_output(create_table(file_xls)[0], file_xls, shares, shares_date)
-        print ('output files created')
+            tbl = create_table(file_xls)[0]
+            try:
+                create_output(tbl, file_xls, shares, shares_date)
+            except KeyError:
+                print 'error processing file' + file_xls
+        print('\noutput files created:')
+        print('---------------------')
+        for file_names in files_list:
+            print(file_names)
     else:
         print '***\ncan not grab shares from yahoo-finance\ntry again in few minutes, please\n***'
