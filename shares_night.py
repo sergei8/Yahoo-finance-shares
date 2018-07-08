@@ -71,9 +71,9 @@ def create_output(table, file_name, shares, current_date):
     
     # create table
     table = pd.merge(left=table, right=shares_tmp, left_on='SYMBOL', right_on='SYMBOL')
-    
+    #print table.head(2)
     # reformat prices to 2 dec.digits
-    table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
+    #table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
     
     # rename some columns
     new_col_names = {'STOCKS': 'STOCKS-BUY', 'Unnamed: 10': 'STOCKS-SELL',
@@ -85,7 +85,7 @@ def create_output(table, file_name, shares, current_date):
     table.insert(len(table.columns) - 1, 'CURRENT DATE', current_date.strftime('%m-%d-%Y'))
     
     # add  and format calculated columns at the end of the table
-    table['STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price'] 
+    table['STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price']
     table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price']
     #table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE %'].map(lambda x: round(x, 2))
     #table['STRIKE UPSIDE'] = table['STRIKE UPSIDE'].map(lambda x: round(x, 2))
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # print files_list
     
     # set date for get shares as for previous day
-    shares_date = datetime.now() + timedelta(-1)
+    shares_date = datetime.now() + timedelta(-3)
     print 'shares on: ' + str(shares_date)
     
     # get list of `symbol`
@@ -138,10 +138,10 @@ if __name__ == '__main__':
     if not shares.empty:
         for file_xls in files_list:
             tbl = create_table(file_xls)[0]
-            try:
-                create_output(tbl, file_xls, shares, shares_date)
-            except KeyError:
-                print 'error processing file' + file_xls
+            # try:
+            create_output(tbl, file_xls, shares, shares_date)
+            # except KeyError:
+            print 'error processing file ' + file_xls
         print('\noutput files created:')
         print('---------------------')
         for file_names in files_list:
