@@ -3,7 +3,7 @@
 import os
 import pandas as pd
 import datetime
-from datetime import date
+# from datetime import date
 from datetime import datetime
 from datetime import timedelta
 
@@ -91,6 +91,30 @@ def read_shares(symbl, start, end):
 
 
 # create output xls from table and shares dataframes
+# def create_output(table, shares, real_date):
+#     # remove unnesessary columns from shares
+#     columns_to_drop = ['Close', 'High', 'Low', 'Open', 'Volume']
+#     shares.drop(columns_to_drop, axis=1, inplace=True)
+#
+#     # create table
+#     table = pd.merge(left=table, right=shares, left_on='SYMBOL', right_on='SYMBOL')
+#
+#     # reformat prices to 2 dec.digits
+#     table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
+#
+#     # rename some columns
+#     new_col_names = {'STOCKS': 'STOCKS-BUY', 'Unnamed: 10': 'STOCKS-SELL',
+#                      'CALLS': 'CALLS-BUY', 'Unnamed: 12': 'CALLS-SELL',
+#                      'PUTTES': 'PUTTES-BUY', 'Unnamed: 14': 'PUTTES-SELL'}
+#     table.rename(columns=new_col_names, inplace=True)
+#
+#     # insert `CURRENT DATE` column before `ADJ price`
+#     table.insert(len(table.columns) - 1, 'CURRENT DATE', datetime.strftime(real_date, '%Y-%m-%d'))
+#
+#     # write new xls table
+#     table.to_excel('./_output/' + file_name, index=False)
+
+
 def create_output(table, shares, real_date):
     # remove unnesessary columns from shares
     columns_to_drop = ['Close', 'High', 'Low', 'Open', 'Volume']
@@ -98,9 +122,6 @@ def create_output(table, shares, real_date):
     
     # create table
     table = pd.merge(left=table, right=shares, left_on='SYMBOL', right_on='SYMBOL')
-    
-    # reformat prices to 2 dec.digits
-    table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
     
     # rename some columns
     new_col_names = {'STOCKS': 'STOCKS-BUY', 'Unnamed: 10': 'STOCKS-SELL',
@@ -111,6 +132,10 @@ def create_output(table, shares, real_date):
     # insert `CURRENT DATE` column before `ADJ price`
     table.insert(len(table.columns) - 1, 'CURRENT DATE', datetime.strftime(real_date, '%Y-%m-%d'))
     
+    # add  and format calculated columns at the end of the table
+    table['STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price']
+    table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price']
+
     # write new xls table
     table.to_excel('./_output/' + file_name, index=False)
 
@@ -127,7 +152,6 @@ if __name__ == '__main__':
     shares = read_shares(symbl, start_date, end_date)  # deliver shares from yahoo
     if shares.empty:
         print '***\ncan not grab shares from yahoo-finance\ntry again in few minutes, please\n***'
-        exit
     else:
         print ('shares delivered...')
         real_date = start_date + timedelta(days=-1)

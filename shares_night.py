@@ -2,8 +2,8 @@
 # main part
 import os
 import pandas as pd
-import datetime
-from datetime import date
+# import datetime
+# from datetime import date
 from datetime import datetime
 from datetime import timedelta
 
@@ -71,9 +71,6 @@ def create_output(table, file_name, shares, current_date):
     
     # create table
     table = pd.merge(left=table, right=shares_tmp, left_on='SYMBOL', right_on='SYMBOL')
-    #print table.head(2)
-    # reformat prices to 2 dec.digits
-    #table['Adj Close'] = table['Adj Close'].map(lambda x: round(x, 2))
     
     # rename some columns
     new_col_names = {'STOCKS': 'STOCKS-BUY', 'Unnamed: 10': 'STOCKS-SELL',
@@ -87,15 +84,6 @@ def create_output(table, file_name, shares, current_date):
     # add  and format calculated columns at the end of the table
     table['STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price']
     table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price']
-    #table['STRIKE UPSIDE %'] = table['STRIKE UPSIDE %'].map(lambda x: round(x, 2))
-    #table['STRIKE UPSIDE'] = table['STRIKE UPSIDE'].map(lambda x: round(x, 2))
-    
-    # format some `date` columns
-    # table['TRX Date '] = table['TRX Date '] \
-    #     .map(
-    #     lambda x: pd.to_datetime(x, format='%m-%d-%Y').date() if type(x) == pd._libs.tslib.Timestamp else x)
-    # table['TRX Date '] = table['TRX Date '] \
-    #     .map(lambda x: x.strftime('%m/%d/%Y') if type(x) == pd._libs.tslib.Timestamp else x)
     
     # write new xls table
     table.to_excel('./_output/' + file_name, index=False)
