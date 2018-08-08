@@ -7,6 +7,8 @@ import pandas as pd
 from datetime import datetime
 from datetime import timedelta
 
+pd.core.common.is_list_like = pd.api.types.is_list_like
+
 from pandas_datareader import data as web
 
 import fix_yahoo_finance as yf

@@ -7,6 +7,8 @@ import datetime
 from datetime import datetime
 from datetime import timedelta
 
+pd.core.common.is_list_like = pd.api.types.is_list_like
+
 from pandas_datareader import data as web
 
 import fix_yahoo_finance as yf
@@ -24,11 +26,11 @@ def choose_file():
     # print menu
     print '----------------------------------------------'
     print '--- program gets shares from Yahoo finance ---'
-    print '---       ver. #2.03 ( 18.05.18 )          ---'
+    print '---       ver. #2.04 ( 07.07.18 )          ---'
     print '----------------------------------------------'
     print ('\n\nFiles List:\n')
     for num, file_name in enumerate(list_xls):
-        print '{} - {}'.format(num + 1, file_name)
+        print ('{} - {}'.format(num + 1, file_name))
     print('***')
     
     file_number = 999999
