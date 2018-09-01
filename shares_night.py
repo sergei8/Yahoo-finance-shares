@@ -128,10 +128,10 @@ if __name__ == '__main__':
     if not shares.empty:
         for file_xls in files_list:
             tbl = create_table(file_xls)[0]
-            # try:
-            create_output(tbl, file_xls, shares, shares_date)
-            # except KeyError:
-            print 'error processing file ' + file_xls
+            try:
+                create_output(tbl, file_xls, shares, shares_date)
+            except KeyError:
+                print 'error processing file ' + file_xls
         print('\noutput files created:')
         print('---------------------')
         for file_names in files_list:
