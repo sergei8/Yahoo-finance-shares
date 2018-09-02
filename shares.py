@@ -109,10 +109,10 @@ def create_output(table, shares, real_date):
     # add  and format calculated columns at the end of the table
     table['STRIKE UPSIDE'] = table['STRIKE UPSIDE %'] = table['REMARK'] = None
     
-    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price']
+    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE'] = table['Adj Close'] - table['Strike Price']
     table.loc[table['TRX CODE'].str[0] == 'E', 'STRIKE UPSIDE'] = table['Adj Close'] - table['BASIS COST']
     
-    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price']
+    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike Price']
     table.loc[table['TRX CODE'].str[0] == 'E', 'STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['BASIS COST']
     
     # write new xls table
