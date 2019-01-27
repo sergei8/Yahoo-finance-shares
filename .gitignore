@@ -6,3 +6,7 @@
 *.zip
 work
 distro
+/Shares-Simon
+/Debug-notebook
+Template*.*
+
