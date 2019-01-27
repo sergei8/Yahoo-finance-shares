@@ -26,7 +26,7 @@ def choose_file():
     # print menu
     print '----------------------------------------------'
     print '--- program gets shares from Yahoo finance ---'
-    print '---       ver. #2.06 ( 28.08.18 )          ---'
+    print '---       ver. #2.10 ( 06.09.18 )          ---'
     print '----------------------------------------------'
     print ('\n\nFiles List:\n')
     for num, file_name in enumerate(list_xls):
@@ -74,49 +74,48 @@ def get_date():
 
 # read and preproces shares from yahoo on current date
 def read_shares(symbl, start, end):
-    # read shares from `yahoo`
-    shares_panel = web.get_data_yahoo(list(symbl), start, end)
+    try:
+        # read shares from `yahoo`
+        shares_panel = web.get_data_yahoo(list(symbl), start, end)
 
-    # convert Panel to the Multyindexed frame
-    shares = shares_panel.to_frame()
+        # convert Panel to the Multyindexed frame
+        shares = shares_panel.to_frame()
 
-    # remove index level 0 (data)
-    shares.index = shares.index.droplevel(0)
+        # remove index level 0 (data)
+        shares.index = shares.index.droplevel(0)
 
-    # convert index into column
-    shares.reset_index(inplace=True)
+        # convert index into column
+        shares.reset_index(inplace=True)
 
-    # rename `minor` column
-    shares.rename(columns={'minor': 'SYMBOL'}, inplace=True)
-
+        # rename `minor` column
+        shares.rename(columns={'minor': 'SYMBOL'}, inplace=True)
+    except Exception, e:
+        print (e)
+        shares = pd.DataFrame({})
     return shares
 
 
 def create_output(table, shares, real_date):
     # remove unnesessary columns from shares
-    # columns_to_drop = ['Close', 'High', 'Low', 'Open', 'Volume']
     shares.drop(['Close', 'High', 'Low', 'Open', 'Volume'], axis=1, inplace=True)
 
     # create `marged table
     table = pd.merge(left=table, right=shares, left_on='SYMBOL', right_on='SYMBOL')
 
-    # rename some columns
-    new_col_names = {'STOCKS': 'STOCKS-BUY', 'Unnamed: 10': 'STOCKS-SELL',
-                     'CALLS': 'CALLS-BUY', 'Unnamed: 12': 'CALLS-SELL',
-                     'PUTTES': 'PUTTES-BUY', 'Unnamed: 14': 'PUTTES-SELL'}
-    table.rename(columns=new_col_names, inplace=True)
+    # remove unneceaary columns
+    table.drop(['STOCKS-BUY', 'STOCKS-SELL', 'CALLS-BUY', 'CALLS-SELL', 'PUTTES-BUY',
+                'PUTTES-SELL', 'CASH', 'DIVDNT'], axis=1, inplace=True)
 
     # insert `CURRENT DATE` column before `ADJ price`
     table.insert(len(table.columns) - 1, 'CURRENT DATE', datetime.strftime(real_date, '%Y-%m-%d'))
 
     # add  and format calculated columns at the end of the table
+    table['STRIKE UPSIDE'] = table['STRIKE UPSIDE %'] = table['REMARK'] = None
 
-    table['STRIKE UPSIDE'] = table['STRIKE UPSIDE %'] = None
-
-    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE'] = table['Adj Close'] - table['Strike  Price']
+    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE'] = table['Adj Close'] - table['Strike Price']
     table.loc[table['TRX CODE'].str[0] == 'E', 'STRIKE UPSIDE'] = table['Adj Close'] - table['BASIS COST']
 
-    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike  Price']
+    table.loc[table['TRX CODE'].str[0] == 'O', 'STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['Strike Price']
     table.loc[table['TRX CODE'].str[0] == 'E', 'STRIKE UPSIDE %'] = table['STRIKE UPSIDE'] / table['BASIS COST']
 
     # write new xls table
@@ -125,8 +124,8 @@ def create_output(table, shares, real_date):
 
 if __name__ == '__main__':
     '''Program enriches excel table with shares delivered from yahoo finance
-    Use pandas module `datareader'. Original file is in _input directory,
-    output excel file is in _output directory with the same name'''
+    Use pandas module `datareader' and 'fix_yahoo_finance'. Original file is in `_input` directory,
+    output excel file is in `_output` directory with the same name'''
 
     file_name = choose_file()
     start_date = end_date = get_date()
